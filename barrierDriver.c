@@ -5,7 +5,8 @@
 #include <linux/errno.h>
 
 static LIST_HEAD(linkedlist);
-int waitq_flag;
+int waitq_flag=0;
+int waitq_temp=0;
 
 struct barrier_content{
     struct list_head linkedlist_head;
@@ -77,33 +78,40 @@ asmlinkage int barrier_wait(int barrier_id){
     if(flag==0)
         return -EINVAL;
 
-    if( bc_temp-> count < bc_temp->remaining_threads ){
-        bc_temp -> count ++;        
-        wait_event_interruptible( &bc_temp->my_q, waitq_flag);
+    spin_lock(&bc_temp->my_spin);       /* <---------------------------------------- */
+    if( bc_temp-> count < bc_temp->remaining_threads ){                         // | 
+        bc_temp -> count ++;                                                    // | 
+        waitq_temp ++;                                                          // | 
+    spin_unlock(&bc_temp->my_spin);     /* <---------------------------------------- */ 
 
-        waitq_flag=0;
-    }
+        wait_event_interruptible( &bc_temp->my_q, waitq_flag);                  // | 
+
+    spin_lock(&bc_temp->my_spin);                                               // | 
+        if( waitq_temp == 0 ) waitq_flag=0;                                     // | 
+        else waitq_temp-- ;                                                     // | 
+    spin_unlock(&bc_temp->my_spin);                                             // | 
+    }                                                                           // | 
     
-    else{
+    else{                                                                       // | 
         waitq_flag = 1;
-        wake_up_all( &bc_temp->my_q);
-        bc_temp -> count = 0;        
+        wake_up_all( &bc_temp->my_q);                                           // | 
+        bc_temp -> count = 0;                                                   // | 
+    spin_unlock(&bc_temp->my_spin);     /* <---------------------------------------- */
     }
 
 return 0;
 }
 
 asmlinkage int barrier_destroy(int barrier_id){
+    barrier_content bc_tmp;
+    struct list_head *pos, *q;
 
-
-
-
-
-
+    list_for_each_safe(pos, q, linked_list){
+        bc_tmp = list_entry()    
+        list_del();
+    }
 
 return 0;
 }
-
-
 
 
