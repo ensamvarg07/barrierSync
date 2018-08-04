@@ -1,7 +1,9 @@
 #include <linux/module.h>
 #include <linux/slab.h>
-#include <linux/wait.h>
+#include <linux/wait.h> // wait_queue
 #include <linux/list.h>
+#include <asm/uaccess.h>
+#include <linux/sched.h> //task_tgid_vnr(current)
 #include <linux/errno.h>
 
 static LIST_HEAD(linkedlist);
@@ -21,7 +23,7 @@ struct barrier_content{
 };
 typedef struct barrier_content barrier_content;
 
-asmlinkage int barrier_init(int count, int * barrier_id){
+asmlinkage long barrier_init(unsigned int count,unsigned int * barrier_id){
     barrier_content *bc_ptr, *bc_temp;          //bc stands for barrier content
     int init_flag=0;  
  
@@ -41,8 +43,7 @@ asmlinkage int barrier_init(int count, int * barrier_id){
                 init_flag=1;
                 bc_ptr -> barrier_id = bc_temp->barrier_id +1;
             }
-        }
-    
+        }   
     }
         
     else{ 
@@ -63,7 +64,7 @@ asmlinkage int barrier_init(int count, int * barrier_id){
 return 0;
 }
 
-asmlinkage int barrier_wait(int barrier_id){
+asmlinkage long barrier_wait(unsigned int barrier_id){
 
     int barrier_id = barrier_id;
     int flag=0;
@@ -102,15 +103,17 @@ asmlinkage int barrier_wait(int barrier_id){
 return 0;
 }
 
-asmlinkage int barrier_destroy(int barrier_id){
+asmlinkage long barrier_destroy(unsigned int barrier_id){
     barrier_content bc_tmp;
     struct list_head *pos, *q;
 
-    list_for_each_safe(pos, q, linked_list){
-        bc_tmp = list_entry()    
-        list_del();
+    list_for_each_safe(pos, q, &linked_list.linkedlist_head){
+        bc_tmp = list_entry(pos, &barrier_content, linkedlist_head); 
+        if( bc_tmp->barrier_id == barrier_id && bc_tmp->process_id == task_tgid_vnr(current)){
+            list_del(pos);
+            kfree(bc_tmp);
+        }
     }
-
 return 0;
 }
 
