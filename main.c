@@ -4,6 +4,7 @@
 #include <sys/wait.h>    //wait()
 #include <errno.h>
 #include <pthreads.h>
+#include <sys/syscall.h>
 
 #define ITERATIONS 100
 
@@ -67,7 +68,7 @@ void childProcess(){
     for(i=0; i<20; i++){
         args -> i = i;
         args -> barrier_id = bid2;
-        pthread_create( &thread_set1[i], NULL, process2, (void *)args);
+        pthread_create( &thread_set2[i], NULL, process2, (void *)args);
     }
 
     for(i=0; i<5; i++)
@@ -81,16 +82,20 @@ void childProcess(){
     sleep(1);
 //barrier_destroy(unsigned int barrier_id)
     syscall( ,barrier_id_set2);
+    sleep(1);
 }
 
 void * process1(void *pargs){   
+    int ret;
     process_args *args = (process_args *)malloc(sizeof(process_args));
    
     for(int i=0; i< ITERATIONS; i++){
         args = (process_args *)pargs;
 //barrier_wait(unsigned int barrier_id)
-        syscall( , args-> barrier_id);
+        ret = syscall( , args-> barrier_id);
+        if(ret<0) printf("\nsys_barrier_wait() failed");
 
+    sleep(1);
     }
     pthread_exit(0);
 }
@@ -102,8 +107,10 @@ void * process2(void *pargs){
     for(int i=0; i< ITERATIONS; i++){
         args = (process_args *)pargs;
 //barrier_wait(unsigned int barrier_id)
-       syscall( , args->barrier_id);
-
+       ret = syscall( , args->barrier_id);
+       if(ret<0) printf("\nsys_barrier_wait() failed");
+    
+    sleep(1); 
     }
     pthread_exit(0);
 }
