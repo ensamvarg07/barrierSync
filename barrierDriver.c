@@ -5,10 +5,11 @@
 #include <asm/uaccess.h>
 #include <linux/sched.h> //task_tgid_vnr(current)
 #include <linux/errno.h>
+int errno;
 
 static LIST_HEAD(linkedlist);
 int waitq_flag=0;
-int waitq_temp=0;
+int waitq_counter=0;
 
 struct barrier_content{
     struct list_head linkedlist_head;
@@ -23,7 +24,7 @@ struct barrier_content{
 };
 typedef struct barrier_content barrier_content;
 
-asmlinkage long barrier_init(unsigned int count,unsigned int * barrier_id){
+asmlinkage long sys_barrier_init(unsigned int count,unsigned int * barrier_id){
     barrier_content *bc_ptr, *bc_temp;          //bc stands for barrier content
     int init_flag=0;  
  
@@ -40,8 +41,8 @@ asmlinkage long barrier_init(unsigned int count,unsigned int * barrier_id){
 
         list_for_each_entry( bc_temp, &linkedlist, linkedlist_head){
             if( bc_temp -> process_id == task_tgid_vnr(current) ){
-                init_flag=1;
                 bc_ptr -> barrier_id = bc_temp->barrier_id +1;
+                init_flag=1;
             }
         }   
     }
@@ -64,7 +65,16 @@ asmlinkage long barrier_init(unsigned int count,unsigned int * barrier_id){
 return 0;
 }
 
-asmlinkage long barrier_wait(unsigned int barrier_id){
+/* function: sys_barrier_wait()
+ * If n threads want to hit the barrier,
+ * [1] n-1 threads increment the waitq_counter and are put to sleep
+ * [2] nth thread sets waitq_flag to 1 and wakes up all the sleeping threads
+ * [3] Upon waking up, n-1 threads will decrement the waitq_counter essentially making it 0.
+ * [4] When waitq_counter becomes zero waitq_flag is reset to zero
+ *
+ * waitq_flag is the CONDITION argument in wait_event_interruptible( wait_queue_head_t *, CONDITION);
+ */
+asmlinkage long sys_barrier_wait(unsigned int barrier_id){
 
     int barrier_id = barrier_id;
     int flag=0;
@@ -76,34 +86,36 @@ asmlinkage long barrier_wait(unsigned int barrier_id){
             break;
         }   
     }
-    if(flag==0)
+    if(flag==0){
+        printk("\nError in barrier wait");
         return -EINVAL;
+    }
 
-    spin_lock(&bc_temp->my_spin);       /* <---------------------------------------- */
-    if( bc_temp-> count < bc_temp->remaining_threads ){                         // | 
-        bc_temp -> count ++;                                                    // | 
-        waitq_temp ++;                                                          // | 
-    spin_unlock(&bc_temp->my_spin);     /* <---------------------------------------- */ 
+    spin_lock(&bc_temp->my_spin);       // <------------------------------------------------ 
+    if( bc_temp-> count +1 < bc_temp->remaining_threads ){                              // | 
+        bc_temp -> count ++;                                                            // | 
+        waitq_counter ++;                                                               // | 
+    spin_unlock(&bc_temp->my_spin);     // <------------------------------------------------  
 
-        wait_event_interruptible( &bc_temp->my_q, waitq_flag);                  // | 
+        wait_event_interruptible( &bc_temp->my_q, waitq_flag);                          // | 
 
-    spin_lock(&bc_temp->my_spin);                                               // | 
-        if( waitq_temp == 0 ) waitq_flag=0;                                     // | 
-        else waitq_temp-- ;                                                     // | 
-    spin_unlock(&bc_temp->my_spin);                                             // | 
-    }                                                                           // | 
+    spin_lock(&bc_temp->my_spin);                                                       // | 
+        if( waitq_counter == 0 ) waitq_flag=0;                                          // | 
+        else waitq_counter-- ;                                                          // | 
+    spin_unlock(&bc_temp->my_spin);                                                     // | 
+    }                                                                                   // | 
     
-    else{                                                                       // | 
+    else{                                                                               // | 
         waitq_flag = 1;
-        wake_up_all( &bc_temp->my_q);                                           // | 
-        bc_temp -> count = 0;                                                   // | 
-    spin_unlock(&bc_temp->my_spin);     /* <---------------------------------------- */
+        wake_up_all( &bc_temp->my_q);                                                   // | 
+        bc_temp -> count = 0;                                                           // | 
+    spin_unlock(&bc_temp->my_spin);     // <------------------------------------------------
     }
 
 return 0;
 }
 
-asmlinkage long barrier_destroy(unsigned int barrier_id){
+asmlinkage long sys_barrier_destroy(unsigned int barrier_id){
     barrier_content bc_tmp;
     struct list_head *pos, *q;
 
