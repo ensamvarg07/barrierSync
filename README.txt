@@ -1,4 +1,14 @@
+------------------------------------------------------------------------
+HOW SYNCHRONIZATION IS ACHIEVED IN BARRIER_WAIT():
 
+function: sys_barrier_wait()
+If n threads want to hit the barrier,
+[1] n-1 threads increment the waitq_counter and are put to sleep
+[2] nth thread sets waitq_flag to 1 and wakes up all the sleeping threads
+[3] Upon waking up, n-1 threads will decrement the waitq_counter essentially making it 0.
+[4] When waitq_counter becomes zero waitq_flag is reset to zero
+
+waitq_flag is the CONDITION argument in wait_event_interruptible( wait_queue_head_t *, CONDITION);
 
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
