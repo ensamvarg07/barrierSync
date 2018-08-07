@@ -1,3 +1,9 @@
+-----------------------------------------------------------------------
+
+syscall(335, ) -> unsigned long sys_barrier_init(unsigned int count, unsigned int *barrier_id);
+syscall(336, ) -> unsigned long sys_barrier_wait(unsigned int barrier_id);
+syscall(337, ) -> unsigned long sys_barrier_destroy(unsigned int barrier_id);
+
 ------------------------------------------------------------------------
 HOW SYNCHRONIZATION IS ACHIEVED IN BARRIER_WAIT():
 

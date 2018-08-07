@@ -52,7 +52,7 @@ void childProcess(){
     process_args *args = (process_args *)malloc(sizeof(process_args));
 
 // barrier_init(unisigned int count, unsigned int *barried_id)    
-    syscall( ,5, barrier_id_set1);
+    syscall(335 ,5, barrier_id_set1);
     bid1 = *barrier_id_set1;
 
     for(i=0; i<5; i++){
@@ -62,7 +62,7 @@ void childProcess(){
     }
 
 // barrier_init(unsigned int count, unsigned int *barrier_id)
-    syscall( ,20, barrier_id_set2);
+    syscall(335 ,20, barrier_id_set2);
     bid2 = *barrier_id_set2;
 
     for(i=0; i<20; i++){
@@ -78,10 +78,10 @@ void childProcess(){
          pthread_join(thread_set2[i], NULL);
 
 //barrier_destroy(unsigned int barrier_id)
-    syscall( ,barrier_id_set1);
+    syscall( 337 ,barrier_id_set1);
     sleep(1);
 //barrier_destroy(unsigned int barrier_id)
-    syscall( ,barrier_id_set2);
+    syscall( 337 ,barrier_id_set2);
     sleep(1);
 }
 
@@ -92,7 +92,7 @@ void * process1(void *pargs){
     for(int i=0; i< ITERATIONS; i++){
         args = (process_args *)pargs;
 //barrier_wait(unsigned int barrier_id)
-        ret = syscall( , args-> barrier_id);
+        ret = syscall(336 , args-> barrier_id);
         if(ret<0) printf("\nsys_barrier_wait() failed");
 
     sleep(1);
@@ -107,7 +107,7 @@ void * process2(void *pargs){
     for(int i=0; i< ITERATIONS; i++){
         args = (process_args *)pargs;
 //barrier_wait(unsigned int barrier_id)
-       ret = syscall( , args->barrier_id);
+       ret = syscall(336 , args->barrier_id);
        if(ret<0) printf("\nsys_barrier_wait() failed");
     
     sleep(1); 
