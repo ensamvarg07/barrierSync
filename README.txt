@@ -1,4 +1,11 @@
+
+The test program main.c forks two child process and each child process
+creates 5 threads initially that'll hit a barrier followed by another
+20 threads that'll hit another barrier. The proces is repeated for 
+100 iterations .This test verfies the robustness and re-usablility of our barriers.
+
 -----------------------------------------------------------------------
+USING SYSTEM CALLS IN USER SPACE:
 
 syscall(335, ) -> unsigned long sys_barrier_init(unsigned int count, unsigned int *barrier_id);
 syscall(336, ) -> unsigned long sys_barrier_wait(unsigned int barrier_id);
